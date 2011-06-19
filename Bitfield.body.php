@@ -89,8 +89,17 @@ class Bitfield {
 					else if ($check === "writeonly") {
 						$fieldflag |= 2;
 					}
+					else if ($check === "reserved") {
+						$fieldflag |= 4;
+					}
 					else {
-						$fieldname = $check;
+						if ($fieldflag & 4) {
+							$fieldname = "reserved_".$arg_index;
+							$fielddesc = $check;
+						}
+						else {
+							$fieldname = $check;
+						}
 					}
 				}
 				else if ($fielddesc === 0) {
@@ -101,11 +110,17 @@ class Bitfield {
 				}
 			}
 			else {
+				if ($fieldname == 0 && $fieldflag & 4) {
+					$fieldname = "reserved_".$arg_index;
+				}
+
 				if ($fieldname !== 0) {
 					$fieldnames[] = $fieldname;
 					$fieldsizes[$fieldname] = $fieldsize;
 					$fieldflags[$fieldname] = $fieldflag;
-					$descriptions[$fieldname] = $fielddesc;
+					if ($fielddesc !== 0) {
+						$descriptions[$fieldname] = $fielddesc;
+					}
 				}
 
 				$fieldsize = $checknum;
@@ -153,8 +168,21 @@ class Bitfield {
 			$fieldflag = $fieldflags[$fieldname];
 
 			$fieldwidth = $cellwidth * $fieldsize;
-			$output .= '<td colspan="2" style="padding-bottom: '.($spacing-2).'px; padding-left: '.($spacing-2).'px; margin: 0; width: '.$fieldwidth.'px"><div class="thumbinner">'."\n";
-			$output .= $fieldname;
+			$output .= '<td colspan="2" style="padding-bottom: '.($spacing-2).'px; padding-left: '.($spacing-2).'px; margin: 0; width: '.$fieldwidth.'px">';
+			if ($fieldflag & 4) {
+				// Reserved
+				$output .= '<div class="thumbinner" style="background: #eee; color: #333">';
+				if (isset($descriptions[$fieldname])) {
+					$output .= $descriptions[$fieldname]."\n";
+				}
+				else {
+					$output .= '&nbsp;'."\n";
+				}
+			}
+			else {
+				$output .= '<div class="thumbinner">'."\n";
+				$output .= $fieldname;
+			}
 			$output .= '</div></td>';
 		}
 
@@ -165,7 +193,9 @@ class Bitfield {
 
 		// Description Listing
 		foreach($descriptions as $key => $value) {
-			$output .= "* '''$key''' - $value \n";
+			if (substr($key, 0, 9) !== "reserved_") {
+				$output .= "* '''$key''' - $value \n";
+			}
 		}
 
 		return $output;
